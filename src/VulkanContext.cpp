@@ -87,6 +87,7 @@ void VulkanContext::Init(GLFWwindow* InWindow)
     CreateImageViews();
 
     CreateGraphicsPipeline();
+    CreateVertexBuffer();
 
     CreateCommandPool();
     AllocateCommandBuffers();
@@ -152,6 +153,12 @@ void VulkanContext::WaitIdle() { vkDeviceWaitIdle(Device); }
 void VulkanContext::Cleanup()
 {
     CleanupSwapchain();
+
+    vkDestroyBuffer(Device, VertexBuffer, nullptr);
+    vkFreeMemory(Device, VertexBufferMemory, nullptr);
+
+    vkDestroyPipeline(Device, GraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(Device, ImageAvailableSemaphores[i], nullptr);
@@ -643,6 +650,10 @@ void VulkanContext::RecordCommandBuffer(VkCommandBuffer InCmd, uint32_t InImageI
     
     vkCmdBindPipeline(InCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
 
+    VkBuffer Buffers[] = { VertexBuffer };
+    VkDeviceSize Offsets[] = { 0 };
+    vkCmdBindVertexBuffers(InCmd, 0, 1, Buffers, Offsets);
+
     VkViewport Viewport{};
     Viewport.width = static_cast<float>(SwapchainExtent.width);
     Viewport.height = static_cast<float>(SwapchainExtent.height);
@@ -654,7 +665,7 @@ void VulkanContext::RecordCommandBuffer(VkCommandBuffer InCmd, uint32_t InImageI
     Scissor.extent = SwapchainExtent;
     vkCmdSetScissor(InCmd, 0, 1, &Scissor);
 
-    vkCmdDraw(InCmd, 3, 1, 0, 0);
+    vkCmdDraw(InCmd, VertexCount, 1, 0, 0);
 
     vkCmdEndRendering(InCmd);
 
@@ -749,8 +760,29 @@ void VulkanContext::CreateGraphicsPipeline()
     ShaderStages[1].module = FragModule;
     ShaderStages[1].pName = "main";
 
+
+    VkVertexInputBindingDescription BindingDesc{};
+    BindingDesc.binding   = 0;   // slot index matches vkCmdBindVertexBuffers()
+    BindingDesc.stride    = 5 * sizeof(float);   // pos(2) + color(3) per vertex
+    BindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    
+    VkVertexInputAttributeDescription AttrDescs[2]{};
+    AttrDescs[0].binding = 0; 
+    AttrDescs[0].location = 0; 
+    AttrDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
+    AttrDescs[0].offset = 0;
+
+    AttrDescs[1].binding = 0; 
+    AttrDescs[1].location = 1; 
+    AttrDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    AttrDescs[1].offset = 2 * sizeof(float);
+    
     VkPipelineVertexInputStateCreateInfo VertexInput{};
     VertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    VertexInput.vertexBindingDescriptionCount = 1;
+    VertexInput.pVertexBindingDescriptions = &BindingDesc;
+    VertexInput.vertexAttributeDescriptionCount = 2;
+    VertexInput.pVertexAttributeDescriptions = AttrDescs;
 
     VkPipelineInputAssemblyStateCreateInfo InputAssembly{};
     InputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -816,4 +848,61 @@ void VulkanContext::CreateGraphicsPipeline()
 
     vkDestroyShaderModule(Device, VertModule, nullptr);
     vkDestroyShaderModule(Device, FragModule, nullptr);
+}
+
+void VulkanContext::CreateVertexBuffer()
+{
+    float Vertices[] = {
+        //Positions    Colors
+        0.0f, -0.5f,   1.0f, 0.0f, 0.0f,
+        0.5f,  0.5f,   0.0f, 1.0f, 0.0f,
+       -0.5f,  0.5f,   0.0f, 0.0f, 1.0f, 
+    };
+
+    VkDeviceSize BufferSize = sizeof(Vertices);
+
+    VertexCount = 3;
+    VkBufferCreateInfo BufferInfo{};
+    BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    BufferInfo.size  = BufferSize;
+    BufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    BufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    CHECK_VK(vkCreateBuffer(Device, &BufferInfo, nullptr, &VertexBuffer), "Failed to create vertex buffer");
+
+    VkMemoryRequirements MemReqs;
+    vkGetBufferMemoryRequirements(Device, VertexBuffer, &MemReqs);
+
+    VkMemoryAllocateInfo AllocInfo{};
+    AllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    AllocInfo.allocationSize = MemReqs.size;
+    AllocInfo.memoryTypeIndex = FindMemoryType(MemReqs.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    CHECK_VK(vkAllocateMemory(Device, &AllocInfo, nullptr, &VertexBufferMemory), "Failed to create buffer memory");
+
+    vkBindBufferMemory(Device, VertexBuffer, VertexBufferMemory, 0);
+
+    // Copy vertext data to GPU
+    void* Data;
+    vkMapMemory(Device, VertexBufferMemory, 0, BufferSize, 0, &Data);
+    memcpy(Data, Vertices, BufferSize);
+    vkUnmapMemory(Device, VertexBufferMemory);
+}
+
+// 0 1 0 0 0 0 1 ....
+uint32_t VulkanContext::FindMemoryType(uint32_t InTypeFilter, VkMemoryPropertyFlags InProps)
+{
+    VkPhysicalDeviceMemoryProperties MemProps;
+    vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &MemProps);
+
+    for (uint32_t i = 0; i < MemProps.memoryTypeCount; ++i) 
+    {   
+        if ( (InTypeFilter & (1 << i)) &&
+             (MemProps.memoryTypes[i].propertyFlags & InProps) == InProps)
+             return i;
+    }
+
+    DIE("Failed to find suitable memory type");
+    return 0;
 }

@@ -68,6 +68,11 @@ private:
     VkPipeline                   GraphicsPipeline = VK_NULL_HANDLE;
     VkPipelineLayout             PipelineLayout = VK_NULL_HANDLE;
 
+    // Vertex Buffer
+    uint32_t                     VertexCount = 0;
+    VkBuffer                     VertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory               VertexBufferMemory = VK_NULL_HANDLE;
+
     // Initialisation steps (called in order by Init)
     void CreateInstance();
     void SetupDebugMessenger();
@@ -96,4 +101,7 @@ private:
 
     VkShaderModule          CreateShaderModule(const std::string& InPath);
     void                    CreateGraphicsPipeline();
+
+    void                    CreateVertexBuffer();
+    uint32_t                FindMemoryType(uint32_t InTypeFilter, VkMemoryPropertyFlags InProps);
 };
