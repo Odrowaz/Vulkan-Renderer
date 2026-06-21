@@ -1,8 +1,9 @@
 #include "XWindow.h"
 #include "Common.h"
+#include <iostream>
 
-XWindow::XWindow(int InWidth, int InHeight, const std::string& InTitle)
-    : Width(InWidth), Height(InHeight), Title(InTitle), DeltaTime(0.f)
+XWindow::XWindow(int InWidth, int InHeight, const std::string& InTitle, VulkanContext& InContext)
+    : Width(InWidth), Height(InHeight), Title(InTitle), DeltaTime(0.f), Context(InContext)
 {
     CHECK_DIE(glfwInit(), "GLFW Initialization");
 
@@ -28,7 +29,7 @@ XWindow::~XWindow()
     glfwTerminate();
 }
 
-void XWindow::Update() 
+void XWindow::Update(std::function<void(VkCommandBuffer)> DrawCallback)
 {
     static float LastTime = glfwGetTime();
     float CurrentTime = glfwGetTime();
@@ -36,7 +37,7 @@ void XWindow::Update()
     LastTime = CurrentTime;
 
 	glfwPollEvents();
-    Context.DrawFrame();
+    Context.DrawFrame(DrawCallback);
 }
 
 bool XWindow::IsOpened() const 
@@ -57,12 +58,13 @@ float XWindow::GetDeltaTime() const
 
 void XWindow::SetVSync(bool InEnabled)
 {
-    // Note: This approach is no-more valid
-    /*
-    Control VSync: 0 = disable, 1 = enabled (default).
-    int Value = InEnabled ? 1 : 0;
-    glfwSwapInterval(Value);
-    */
+    std::cout << "VSync " << (InEnabled ? "enabled" : "disabled") << std::endl;
+    if (InEnabled)
+        Context.PreferredPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Enable VSync
+    else
+        Context.PreferredPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // Disable VSync
+
+    Context.NotifyFramebufferResized(); // Trigger swapchain recreation to apply the new present mode
 }
 
 int XWindow::GetWidth() const

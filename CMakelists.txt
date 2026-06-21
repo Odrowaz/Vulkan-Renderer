@@ -34,13 +34,21 @@ target_link_libraries(${EXEC_TARGET} PRIVATE
   glm::glm
 )
 
+file(GLOB_RECURSE COMPILED_SHADERS ${CMAKE_SOURCE_DIR}/resources/shaders/*.spv)
+add_custom_target(CleanShaders
+  COMMAND ${CMAKE_COMMAND} -E remove ${COMPILED_SHADERS}
+  COMMENT "Removing old compiled shaders"
+)
+add_dependencies(${EXEC_TARGET} CleanShaders)
+
+
 file(GLOB_RECURSE SHADERS ${CMAKE_SOURCE_DIR}/resources/shaders/*.vert ${CMAKE_SOURCE_DIR}/resources/shaders/*.frag)
 foreach(SHADER ${SHADERS})
   get_filename_component(SHADER_NAME ${SHADER} NAME)   # triangle.vert
-  set(SPV_OUTPUT ${CMAKE_SOURCE_DIR}/resources/shaders/${SHADER_NAME}.spv) # <full-path>/triangle.vert.spv
+  set(SPV_OUTPUT /resources/shaders/${SHADER_NAME}.spv) # <full-path>/triangle.vert.spv
   add_custom_command(
     OUTPUT ${SPV_OUTPUT}
-    COMMAND Vulkan::glslc ${SHADER} -o ${SPV_OUTPUT}
+    COMMAND Vulkan::glslc ${SHADER} -o ${CMAKE_SOURCE_DIR}${SPV_OUTPUT}
     DEPENDS ${SHADER}
     COMMENT "Compiling ${SHADER_NAME} -> ${SHADER_NAME}.spv"
   )
@@ -49,9 +57,14 @@ endforeach(SHADER ${SHADERS})
 add_custom_target(Shaders DEPENDS ${SPV_OUTPUTS})
 add_dependencies(${EXEC_TARGET} Shaders)
 
+
 # Post build: Copy Resources to bin
 set(ResourcesPath ${CMAKE_CURRENT_SOURCE_DIR}/resources)
-add_custom_command(TARGET ${EXEC_TARGET} POST_BUILD
+add_custom_target(CopyResources
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan "Copy Resources..."
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcesPath} $<TARGET_FILE_DIR:${EXEC_TARGET}>/resources
+  COMMENT "Copying resources"
 )
+
+add_dependencies(CopyResources Shaders)        # aspetta che gli shader siano compilati
+add_dependencies(${EXEC_TARGET} CopyResources) # l'exe aspetta che le risorse siano copiate

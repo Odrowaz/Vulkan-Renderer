@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -27,11 +28,27 @@ public:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
     void Init(GLFWwindow* InWindow);
-    void DrawFrame();
+    void DrawFrame(std::function<void(VkCommandBuffer)> DrawCallback);
     void WaitIdle();
     void Cleanup();
 
+    VkPresentModeKHR PreferredPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // Default to immediate mode (no VSync)
+
+    VkDevice GetDevice() const { return Device; }
+    VkFormat& GetSwapchainImageFormat() { return SwapchainImageFormat; }
+    VkDescriptorPool GetDescriptorPool() const { return DescriptorPool; }
+    VkSampler GetTextureSampler() const { return TextureSampler; }
+    VkExtent2D& GetSwapchainExtent() { return SwapchainExtent; }
+
+    uint32_t                            FindMemoryType(uint32_t InTypeFilter, VkMemoryPropertyFlags InProps);
+    VkCommandBuffer                     BeginSingleTimeCommands();
+    void                                EndSingleTimeCommands(VkCommandBuffer Cmd);    
+    void                                TransitionImageLayout(VkCommandBuffer Cmd, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout);
+
     void NotifyFramebufferResized() { FramebufferResized = true; }
+
+    std::pair<VkImage, VkDeviceMemory>  CreateTexture(std::string InPath);
+    VkImageView                         CreateTextureImageView(VkImage TextureImage);
 
 private:
     GLFWwindow*                  Window = nullptr;
@@ -64,25 +81,16 @@ private:
     bool                         FramebufferResized = false;
     bool                         ValidationEnabled  = false;
 
-    // Pipeline
-    VkPipeline                   GraphicsPipeline = VK_NULL_HANDLE;
-    VkPipelineLayout             PipelineLayout = VK_NULL_HANDLE;
+    // Texture
+    VkSampler                    TextureSampler = VK_NULL_HANDLE;
 
-    // Vertex Buffer
-    uint32_t                     VertexCount = 0;
-    VkBuffer                     VertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory               VertexBufferMemory = VK_NULL_HANDLE;
+    // Descriptor                   
+    VkDescriptorPool             DescriptorPool = VK_NULL_HANDLE;
 
     // Model Pipeline
     VkImage                      DepthImage = VK_NULL_HANDLE;
     VkDeviceMemory               DepthImageMemory = VK_NULL_HANDLE;
     VkImageView                  DepthImageView = VK_NULL_HANDLE;
-    uint32_t                     IndexCount = 0;
-    VkBuffer                     IndexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory               IndexBufferMemory = VK_NULL_HANDLE;
-
-    VkPipeline                   ModelPipeline = VK_NULL_HANDLE;
-    VkPipelineLayout             ModelPipelineLayout = VK_NULL_HANDLE;
 
 
     // Initialisation steps (called in order by Init)
@@ -99,25 +107,20 @@ private:
     void CreateSyncObjects();
 
     // Runtime helpers
-    void RecordCommandBuffer(VkCommandBuffer InCmd, uint32_t InImageIndex);
+    void RecordCommandBuffer(VkCommandBuffer InCmd, uint32_t InImageIndex, std::function<void(VkCommandBuffer)> DrawCallback);
     void RecreateSwapchain();
     void CleanupSwapchain();
 
     // Query helpers
-    QueueFamilyIndices      FindQueueFamilies(VkPhysicalDevice InDevice);
-    SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice InDevice);
-    bool                    IsDeviceSuitable(VkPhysicalDevice InDevice);
-    VkSurfaceFormatKHR      ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InFormats);
-    VkPresentModeKHR        ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& InModes);
-    VkExtent2D              ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& InCaps);
+    QueueFamilyIndices                  FindQueueFamilies(VkPhysicalDevice InDevice);
+    SwapchainSupportDetails             QuerySwapchainSupport(VkPhysicalDevice InDevice);
+    bool                                IsDeviceSuitable(VkPhysicalDevice InDevice);
+    VkSurfaceFormatKHR                  ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InFormats);
+    VkPresentModeKHR                    ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& InModes);
+    VkExtent2D                          ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& InCaps);
 
-    VkShaderModule          CreateShaderModule(const std::string& InPath);
-    void                    CreateGraphicsPipeline();
+    void                                CreateDepthResources();
 
-    void                    CreateVertexBuffer();
-    uint32_t                FindMemoryType(uint32_t InTypeFilter, VkMemoryPropertyFlags InProps);
-
-    void                    CreateDepthResources();
-    void                    CreateModelPipeline();
-    void                    CreateModelBuffers();
+    void                                CreateTextureSampler();
+    void                                CreateDescriptorPool();
 };

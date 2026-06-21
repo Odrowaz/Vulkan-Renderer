@@ -11,11 +11,15 @@ layout(push_constant) uniform PushConstants {
 
 layout(location = 0) out vec3 FragNormal;
 layout(location = 1) out vec2 FragTexCoord;
+layout(location = 2) out vec3 vert_world_pos_out;
+layout(location = 3) out vec3 camera_pos_out;
 
 void main()
 {
     gl_Position = PC.Mvp * vec4(InPosition, 1.0);
     FragNormal = mat3(transpose(inverse(PC.Model))) * InNormal;
     FragTexCoord = InTexCoord;
+    vert_world_pos_out = (PC.Model * vec4(InPosition, 1.0)).xyz;
+    camera_pos_out = vec3(0.f, 0.f, -1.f);
 }
 
