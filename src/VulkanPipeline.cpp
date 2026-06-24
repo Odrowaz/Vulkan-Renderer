@@ -94,10 +94,15 @@ VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
   RenderingInfo.pColorAttachmentFormats = &InContext.GetSwapchainImageFormat();
   RenderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
-  VkPushConstantRange PushRange{};
-  PushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-  PushRange.offset = 0;
-  PushRange.size = 2 * sizeof(glm::mat4); // MVP + Model = 128 bytes
+
+  std::vector<VkPushConstantRange> PushRanges(2);
+  PushRanges[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  PushRanges[0].offset = 0;
+  PushRanges[0].size = 2 * sizeof(glm::mat4); // MVP = 64 bytes
+
+  PushRanges[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  PushRanges[1].offset = 2 * sizeof(glm::mat4);
+  PushRanges[1].size = sizeof(glm::vec3); // CameraPos = 12 bytes
 
   // Create descriptor set layout for the material
   std::vector<VkDescriptorSetLayoutBinding> Bindings(MaxViews);
@@ -123,8 +128,8 @@ VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
 
   VkPipelineLayoutCreateInfo LayoutInfo{};
   LayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  LayoutInfo.pushConstantRangeCount = 1;
-  LayoutInfo.pPushConstantRanges = &PushRange;
+  LayoutInfo.pushConstantRangeCount = 2;
+  LayoutInfo.pPushConstantRanges = PushRanges.data();
   LayoutInfo.setLayoutCount = 1;
   LayoutInfo.pSetLayouts = &DescriptorSetLayout;
 
@@ -206,8 +211,14 @@ void VulkanPipeline::Draw(VkCommandBuffer InCmd, Mesh &InMesh,
                           0,
                           nullptr);
 
+  struct { glm::mat4 Mvp; glm::mat4 Model; } data {PushData.Mvp, PushData.Model};
+
   vkCmdPushConstants(InCmd, this->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                     sizeof(PushData), &PushData);
+                     2 * sizeof(glm::mat4), &data);
+
+  vkCmdPushConstants(InCmd, this->PipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(glm::mat4),
+                     sizeof(glm::vec3), &PushData.CameraPos);
+
   vkCmdBindIndexBuffer(InCmd, InMesh.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdDrawIndexed(InCmd, InMesh.IndexCount, 1, 0, 0, 0);
 }

@@ -3,10 +3,14 @@
 layout(location = 0) in vec3 vert_world_norm_out;
 layout(location = 1) in vec2 vert_uv_out;
 layout(location = 2) in vec3 vert_world_pos_out;
-layout(location = 3) in vec3 camera_pos_out;
 
 layout(binding = 0) uniform sampler2D trup_tex;
 layout(binding = 1) uniform sampler2D smile_tex;
+
+layout(push_constant) uniform PushConstants {
+    layout(offset = 128) vec3 camera_pos_out;
+} PC;
+
 
 layout(location = 0) out vec4 frag_color;
 
@@ -31,7 +35,7 @@ void main()
     vec4 diffuse = lambert * trup_color;
 
     //Specular
-    vec3 dir_to_eye = normalize(camera_pos_out - vert_world_pos_out);
+    vec3 dir_to_eye = normalize(PC.camera_pos_out - vert_world_pos_out);
 
     vec3 dir_light_to_point = dir_to_light * -1.f;
     vec3 light_refl = reflect(dir_light_to_point, normal);
