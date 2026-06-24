@@ -1,6 +1,6 @@
 # Vulkan Renderer - Coursework Project
 
-A C++/Vulkan renderer started as coursework at AIV, originally provided by the instructor as a single-file example rendering a cube with normal visualization (no texturing, minimal structure).
+A C++/Vulkan renderer started as coursework at AIV, originally provided by the instructor.
 
 ## My contribution
 Building on the base provided, I implemented:
@@ -15,7 +15,7 @@ Building on the base provided, I implemented:
 - **Build:** CMake + Conan
 
 ## Note
-This is a fork of the instructor's base repository (`aiv01/2526_PROG3_Vulkan`). The original provided only a minimal monolitich setup (missing the obj loader implementation) example with normals displayed as texture; the work above was added on top of that foundation.
+This is a fork of the instructor's base repository (`aiv01/2526_PROG3_Vulkan`). The original provided only a minimal monolitich setup with an obj loader implementation example with normals displayed as texture; the work above was added on top of that foundation.
 
 ## Setup (VS Code)
 In `.vscode/settings.json`:
