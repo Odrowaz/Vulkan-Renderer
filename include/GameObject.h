@@ -1,15 +1,22 @@
 #pragma once
-#include "Texture.h"
 #include "Mesh.h"
+#include "Material.h"
+#include "Transform.h"
+#include "VulkanContext.h"
 #include "VulkanPipeline.h"
+#include "Camera.h"
 
 
-class GameObject {
+class GameObject: public Transform {
 public:
-  GameObject();
-  ~GameObject();
+  GameObject(VulkanContext& Context, Mesh& Mesh, Material& Material, VulkanPipeline& Pipeline, Camera& InCamera);
+  virtual ~GameObject();
+  virtual void Update(float DeltaTime);
+  virtual void Draw(VkCommandBuffer InCmd);
 private:
-  Texture ObjectTexture;
-  Mesh ObjectMesh;
-  VulkanPipeline ObjectPipeline;
+  VulkanContext& Context;
+  Mesh& ObjectMesh;
+  Material& ObjectMaterial;
+  VulkanPipeline& ObjectPipeline;
+  Camera& MainCamera;
 };

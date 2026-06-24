@@ -2,7 +2,6 @@
 #include "Common.h"
 #include <fstream>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
                                std::string VertexShaderPath,
@@ -193,7 +192,7 @@ VulkanPipeline::~VulkanPipeline() {
 static float Rotation = 0.f;
 
 void VulkanPipeline::Draw(VkCommandBuffer InCmd, Mesh &InMesh,
-                          Material &InMaterial, VkExtent2D SwapchainExtent, float DeltaTime) {
+                          Material &InMaterial, PushConstants PushData) {
 
   VkBuffer Buffers[] = {InMesh.VertexBuffer};
   VkDeviceSize Offsets[] = {0};
@@ -207,29 +206,6 @@ void VulkanPipeline::Draw(VkCommandBuffer InCmd, Mesh &InMesh,
                           0,
                           nullptr);
 
-  float Aspect = static_cast<float>(SwapchainExtent.width) /
-                 static_cast<float>(SwapchainExtent.height);
-
-  Rotation += 1.f * DeltaTime;
-  glm::mat4 Model = glm::mat4(1.0f);
-  Model = glm::translate(Model, glm::vec3(0.0f, -2.0f, -4.f));
-  Model = glm::rotate(Model, Rotation, glm::vec3(0.f, 1.f, 0.f));
-  Model = glm::scale(
-      Model,
-      glm::vec3(1.f, 1.f,
-                1.f)); // Flip X-axis to match right-handed coordinate system
-
-  glm::mat4 View =
-      glm::lookAt(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, -1.f),
-                  glm::vec3(0.f, 1.f, 0.f));
-  glm::mat4 Proj = glm::perspective(glm::radians(60.f), Aspect, 0.1f, 100.f);
-  Proj[1][1] *= -1; // Flip Y for Vulkan's coordinate system
-  glm::mat4 Mvp = Proj * View * Model;
-
-  struct {
-    glm::mat4 Mvp;
-    glm::mat4 Model;
-  } PushData{Mvp, Model};
   vkCmdPushConstants(InCmd, this->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                      sizeof(PushData), &PushData);
   vkCmdBindIndexBuffer(InCmd, InMesh.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);

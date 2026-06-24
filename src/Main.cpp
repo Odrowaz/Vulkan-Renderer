@@ -1,9 +1,11 @@
+#include "GameObject.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Texture.h"
 #include "VulkanPipeline.h"
 #include "XWindow.h"
 #include <format>
+#include <glm/gtc/matrix_transform.hpp>
 
 int main() {
   bool VsyncEnabled = false;
@@ -16,15 +18,21 @@ int main() {
 
   Mesh stormtrooperMesh(Context, "resources/models/stormtrooper.obj");
 
-  VulkanPipeline ModelPipeline(Context, "resources/shaders/model.vert.spv",
-                               "resources/shaders/model.frag.spv", 10);
+  VulkanPipeline pipeline(Context, "resources/shaders/model.vert.spv",
+                          "resources/shaders/model.frag.spv", 10);
 
   Material stormtrooperMaterial(
-      Context, ModelPipeline.GetDescriptorSetLayout(),
+      Context, pipeline.GetDescriptorSetLayout(),
       {stormtrooperTexture.GetImageView(), smileTexture.GetImageView()},
       {Context.GetTextureSampler(), Context.GetTextureSampler()});
 
+  Camera mainCamera(60.f, Window.GetAspectRatio(), 0.1f, 100.f);
+
+  GameObject stormtrooper{Context, stormtrooperMesh, stormtrooperMaterial,
+                          pipeline, mainCamera};
+
   bool buttonPressed = false;
+  float Rotation = 0.f;
 
   while (Window.IsOpened()) {
     static float TitleUpdateMaxTime = 1.f;
@@ -44,10 +52,48 @@ int main() {
       FrameCount = 0;
     }
 
-    Window.Update([&](VkCommandBuffer InCmd) {
-      ModelPipeline.Draw(InCmd, stormtrooperMesh, stormtrooperMaterial,
-                         Context.GetSwapchainExtent(), DeltaTime);
-    });
+
+    if( Window.KeyPressed(GLFW_KEY_ESCAPE)) {
+      break;
+    }
+
+    glm::vec3 Forward;
+    Forward.x = cos(glm::radians(mainCamera.Rotation.x)) * sin(glm::radians(mainCamera.Rotation.y));
+    Forward.y = sin(glm::radians(mainCamera.Rotation.x));
+    Forward.z = -cos(glm::radians(mainCamera.Rotation.x)) * cos(glm::radians(mainCamera.Rotation.y));
+
+    glm::vec3 Right = glm::normalize(glm::cross(Forward, glm::vec3(0.f, 1.f, 0.f)));
+
+    if(Window.KeyPressed(GLFW_KEY_W)) {
+      mainCamera.Position += Forward * DeltaTime * 5.f;
+    }
+    else if(Window.KeyPressed(GLFW_KEY_S)) {
+      mainCamera.Position -= Forward * DeltaTime * 5.f;
+    }
+    if(Window.KeyPressed(GLFW_KEY_A)) {
+      mainCamera.Position -= Right * DeltaTime * 5.f;
+    }
+    else if(Window.KeyPressed(GLFW_KEY_D)) {
+      mainCamera.Position += Right * DeltaTime * 5.f;
+    }
+
+    if(Window.KeyPressed(GLFW_KEY_UP)) {
+      mainCamera.Rotation.x += 50.f * DeltaTime;
+    }
+    else if(Window.KeyPressed(GLFW_KEY_DOWN)) {
+      mainCamera.Rotation.x -= 50.f * DeltaTime;
+    }
+
+    if(Window.KeyPressed(GLFW_KEY_LEFT)) {
+      mainCamera.Rotation.y -= 50.f * DeltaTime;
+    }
+    else if(Window.KeyPressed(GLFW_KEY_RIGHT)) {
+      mainCamera.Rotation.y += 50.f * DeltaTime;
+    }
+
+    //stormtrooper.Update(DeltaTime);
+
+    Window.Update([&](VkCommandBuffer InCmd) { stormtrooper.Draw(InCmd); });
 
     if (Window.KeyPressed(GLFW_KEY_V) && !buttonPressed) {
       buttonPressed = true;

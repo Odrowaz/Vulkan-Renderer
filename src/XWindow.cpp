@@ -67,6 +67,11 @@ void XWindow::SetVSync(bool InEnabled)
     Context.NotifyFramebufferResized(); // Trigger swapchain recreation to apply the new present mode
 }
 
+float XWindow::GetAspectRatio() const
+{
+    return static_cast<float>(Context.GetSwapchainExtent().width) / static_cast<float>(Context.GetSwapchainExtent().height);
+}
+
 int XWindow::GetWidth() const
 {
     return Width;

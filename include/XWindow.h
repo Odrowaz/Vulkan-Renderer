@@ -16,6 +16,7 @@ public:
     void SetVSync(bool InEnabled);
     int GetWidth() const;
     int GetHeight() const;
+    float GetAspectRatio() const;
     VulkanContext& GetVulkanContext() { return Context; }
     bool KeyPressed(int Key) const { return glfwGetKey(RawWindow, Key) == GLFW_PRESS; }
 private:
