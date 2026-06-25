@@ -7,6 +7,7 @@
 
 class GameObject: public Transform {
 public:
+  GameObject(Mesh& Mesh, Material& Material);
   GameObject(Mesh& Mesh, Material& Material, Camera& InCamera);
   virtual ~GameObject();
   virtual void Update(float DeltaTime);

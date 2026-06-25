@@ -1,7 +1,11 @@
 #include "GameObject.h"
 #include "Camera.h"
+#include "CameraManager.h"
 #include "Material.h"
 #include <glm/gtc/matrix_transform.hpp>
+
+GameObject::GameObject(Mesh &Mesh, Material &Material)
+    : ObjectMesh(Mesh), ObjectMaterial(Material), MainCamera(CameraManager::GetMainCamera()) {}
 
 GameObject::GameObject(Mesh &Mesh, Material &Material, Camera &InCamera)
     : ObjectMesh(Mesh), ObjectMaterial(Material), MainCamera(InCamera) {}

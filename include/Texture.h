@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanContext.h"
+#include <string>
 #include <vulkan/vulkan.h>
 
 class Texture {

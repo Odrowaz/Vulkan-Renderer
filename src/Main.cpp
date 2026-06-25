@@ -1,3 +1,4 @@
+#include "CameraManager.h"
 #include "GameObject.h"
 #include "Material.h"
 #include "Mesh.h"
@@ -19,7 +20,8 @@ int main() {
     "resources/shaders/model.frag.spv", 10);
 
   //Camera
-  Camera mainCamera(60.f, Window.GetAspectRatio(), 0.1f, 100.f);
+  CameraManager::AddMainCamera(60.f, Window.GetAspectRatio(), 0.1f, 100.f);
+  CameraManager::AddCamera("Secondary", 60.f, Window.GetAspectRatio(), 0.1f, 100.f);
 
   // Textures
   Texture stormtrooperTexture("resources/textures/stormtrooper.png");
@@ -36,10 +38,8 @@ int main() {
   Mesh suzanneMesh("resources/models/suzanne.obj");
 
   // Logic Object
-  GameObject stormtrooper{stormtrooperMesh, stormtrooperMaterial,
-                           mainCamera};
-  GameObject suzanne{suzanneMesh, stormtrooperMaterial,
-                      mainCamera};
+  GameObject stormtrooper{stormtrooperMesh, stormtrooperMaterial};
+  GameObject suzanne{suzanneMesh, stormtrooperMaterial, CameraManager::GetCamera("Secondary")};
 
   stormtrooper.Position = glm::vec3(-2.f, -1.f, -6.f);
   suzanne.Position = glm::vec3(2.f, 1.f, -6.f);
@@ -65,43 +65,43 @@ int main() {
         FrameCount = 0;
     }
       
-    mainCamera.SetAspectRatio(Window.GetAspectRatio());
+    CameraManager::UpdateAspectRatio(Window.GetAspectRatio());
 
     if( Window.KeyPressed(GLFW_KEY_ESCAPE)) {
       break;
     }
 
     glm::vec3 Forward;
-    Forward.x = cos(glm::radians(mainCamera.Rotation.x)) * sin(glm::radians(mainCamera.Rotation.y));
-    Forward.y = sin(glm::radians(mainCamera.Rotation.x));
-    Forward.z = -cos(glm::radians(mainCamera.Rotation.x)) * cos(glm::radians(mainCamera.Rotation.y));
+    Forward.x = cos(glm::radians(CameraManager::GetMainCamera().Rotation.x)) * sin(glm::radians(CameraManager::GetMainCamera().Rotation.y));
+    Forward.y = sin(glm::radians(CameraManager::GetMainCamera().Rotation.x));
+    Forward.z = -cos(glm::radians(CameraManager::GetMainCamera().Rotation.x)) * cos(glm::radians(CameraManager::GetMainCamera().Rotation.y));
 
     glm::vec3 Right = glm::normalize(glm::cross(Forward, glm::vec3(0.f, 1.f, 0.f)));
 
     if(Window.KeyPressed(GLFW_KEY_W)) {
-      mainCamera.Position += Forward * DeltaTime * 5.f;
+      CameraManager::GetMainCamera().Position += Forward * DeltaTime * 5.f;
     }
     else if(Window.KeyPressed(GLFW_KEY_S)) {
-      mainCamera.Position -= Forward * DeltaTime * 5.f;
+      CameraManager::GetMainCamera().Position -= Forward * DeltaTime * 5.f;
     }
     if(Window.KeyPressed(GLFW_KEY_A)) {
-      mainCamera.Position -= Right * DeltaTime * 5.f;
+      CameraManager::GetMainCamera().Position -= Right * DeltaTime * 5.f;
     }
     else if(Window.KeyPressed(GLFW_KEY_D)) {
-      mainCamera.Position += Right * DeltaTime * 5.f;
+      CameraManager::GetMainCamera().Position += Right * DeltaTime * 5.f;
     }
 
     if(Window.KeyPressed(GLFW_KEY_UP)) {
-      mainCamera.Rotation.x += 50.f * DeltaTime;
+      CameraManager::GetMainCamera().Rotation.x += 50.f * DeltaTime;
     }
     else if(Window.KeyPressed(GLFW_KEY_DOWN)) {
-      mainCamera.Rotation.x -= 50.f * DeltaTime;
+      CameraManager::GetMainCamera().Rotation.x -= 50.f * DeltaTime;
     }
     if(Window.KeyPressed(GLFW_KEY_LEFT)) {
-      mainCamera.Rotation.y -= 50.f * DeltaTime;
+      CameraManager::GetMainCamera().Rotation.y -= 50.f * DeltaTime;
     }
     else if(Window.KeyPressed(GLFW_KEY_RIGHT)) {
-      mainCamera.Rotation.y += 50.f * DeltaTime;
+      CameraManager::GetMainCamera().Rotation.y += 50.f * DeltaTime;
     }
 
     //stormtrooper.Update(DeltaTime);
