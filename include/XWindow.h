@@ -11,6 +11,7 @@ class XWindow
 public:
     XWindow(int InWidth, int InHeight, const std::string& InTitle);
     ~XWindow();
+    void PollEvents();
     void Update(std::function<void(VkCommandBuffer)> DrawCallback);
     bool IsOpened() const;
     void SetTitle(const std::string& InTitle);

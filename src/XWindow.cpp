@@ -29,13 +29,16 @@ XWindow::~XWindow() {
   glfwTerminate();
 }
 
-void XWindow::Update(std::function<void(VkCommandBuffer)> DrawCallback) {
+void XWindow::PollEvents() {
   static float LastTime = glfwGetTime();
   float CurrentTime = glfwGetTime();
   DeltaTime = CurrentTime - LastTime;
   LastTime = CurrentTime;
 
   glfwPollEvents();
+}
+
+void XWindow::Update(std::function<void(VkCommandBuffer)> DrawCallback) {
   VulkanContext::GetInstance().DrawFrame(DrawCallback);
 }
 

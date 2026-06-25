@@ -71,6 +71,8 @@ int main() {
       break;
     }
 
+    Window.PollEvents();
+
     CameraManager::UpdateAspectRatio(Window.GetAspectRatio());
     CameraManager::GetMainCamera().Update(Window, DeltaTime);
     //CameraManager::GetCamera("Secondary").Update(Window, DeltaTime);

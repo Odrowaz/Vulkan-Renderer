@@ -39,7 +39,7 @@ void Camera::Update(XWindow &Window, float DeltaTime) {
     Position += GetRight() * DeltaTime * 5.f;
   }
 
-  static glm::vec2 LastMousePosition;
+  static glm::vec2 LastMousePosition = Window.Mouse();
   glm::vec2 MouseDelta = Window.Mouse() - LastMousePosition;
   LastMousePosition = Window.Mouse();
 
