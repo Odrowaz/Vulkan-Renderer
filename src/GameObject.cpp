@@ -21,8 +21,22 @@ void GameObject::Draw(VkCommandBuffer InCmd) {
 
   glm::mat4 Mvp = MainCamera.GetProjectionMatrix() * MainCamera.GetViewMatrix() * Model;
 
-  PushConstants data = {Mvp, Model, MainCamera.Position};
-  ObjectPipeline.Draw(InCmd, ObjectMesh, ObjectMaterial, data);
+  struct {glm::mat4 Mvp; glm::mat4 Model;} VertexData = {Mvp, Model};
+
+  ObjectPipeline.Draw(InCmd, ObjectMesh, ObjectMaterial, {
+    {
+          VK_SHADER_STAGE_VERTEX_BIT,
+          2 * sizeof(glm::mat4),
+          0,
+          &VertexData
+        },
+    {
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          sizeof(glm::vec3),
+          2 * sizeof(glm::mat4),
+          &MainCamera.Position
+        }
+  });
 }
 
 GameObject::~GameObject() {}

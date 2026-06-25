@@ -2,6 +2,7 @@
 #include "Common.h"
 #include <fstream>
 #include <glm/glm.hpp>
+#include <vector>
 
 VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
                                std::string VertexShaderPath,
@@ -94,7 +95,6 @@ VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
   RenderingInfo.pColorAttachmentFormats = &InContext.GetSwapchainImageFormat();
   RenderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
-
   std::vector<VkPushConstantRange> PushRanges(2);
   PushRanges[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
   PushRanges[0].offset = 0;
@@ -133,9 +133,9 @@ VulkanPipeline::VulkanPipeline(VulkanContext &InContext,
   LayoutInfo.setLayoutCount = 1;
   LayoutInfo.pSetLayouts = &DescriptorSetLayout;
 
-  CHECK_VK(vkCreatePipelineLayout(Device, &LayoutInfo, nullptr,
-                                  &PipelineLayout),
-           "Failed creating layout");
+  CHECK_VK(
+      vkCreatePipelineLayout(Device, &LayoutInfo, nullptr, &PipelineLayout),
+      "Failed creating layout");
 
   VkPipelineDepthStencilStateCreateInfo DepthStencil{};
   DepthStencil.sType =
@@ -194,10 +194,9 @@ VulkanPipeline::~VulkanPipeline() {
   vkDestroyDescriptorSetLayout(Device, DescriptorSetLayout, nullptr);
 }
 
-static float Rotation = 0.f;
-
 void VulkanPipeline::Draw(VkCommandBuffer InCmd, Mesh &InMesh,
-                          Material &InMaterial, PushConstants PushData) {
+                          Material &InMaterial,
+                          std::vector<PushConstants> PushDatas) {
 
   VkBuffer Buffers[] = {InMesh.VertexBuffer};
   VkDeviceSize Offsets[] = {0};
@@ -208,16 +207,12 @@ void VulkanPipeline::Draw(VkCommandBuffer InCmd, Mesh &InMesh,
 
   vkCmdBindDescriptorSets(InCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           this->PipelineLayout, 0, 1, &InMaterial.DescriptorSet,
-                          0,
-                          nullptr);
+                          0, nullptr);
 
-  struct { glm::mat4 Mvp; glm::mat4 Model; } data {PushData.Mvp, PushData.Model};
-
-  vkCmdPushConstants(InCmd, this->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                     2 * sizeof(glm::mat4), &data);
-
-  vkCmdPushConstants(InCmd, this->PipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(glm::mat4),
-                     sizeof(glm::vec3), &PushData.CameraPos);
+  for (auto &PushData : PushDatas) {
+    vkCmdPushConstants(InCmd, this->PipelineLayout, PushData.stage,
+                       PushData.offset, PushData.size, PushData.data);
+  }
 
   vkCmdBindIndexBuffer(InCmd, InMesh.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdDrawIndexed(InCmd, InMesh.IndexCount, 1, 0, 0, 0);

@@ -2,15 +2,15 @@
 #include "Material.h"
 #include "Mesh.h"
 #include "VulkanContext.h"
+#include <glm/glm.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
-
 
 struct PushConstants {
-  glm::mat4 Mvp;
-  glm::mat4 Model;
-  glm::vec3 CameraPos;
+  VkShaderStageFlagBits stage;
+  size_t size;
+  size_t offset;
+  void *data;
 };
 
 class VulkanPipeline {
@@ -26,7 +26,7 @@ public:
   }
 
   void Draw(VkCommandBuffer InCmd, Mesh &InMesh, Material &InMaterial,
-            PushConstants PushData);
+            std::vector<PushConstants> PushDatas);
 
 private:
   VkDevice Device = VK_NULL_HANDLE;
